@@ -10,7 +10,7 @@
 | **published/** | 已发表文章，按年份归档（如 `published/2025/`） |
 | **materials/** | 素材：`quotes/` 摘录、`links/` 链接、`notes/` 零散笔记 |
 | **templates/** | 文章模板（如 `article.md`），便于统一 frontmatter |
-| **ai/** | 预留：AI 提示词、生成草稿等辅助创作内容 |
+| **agent/** | 多 Agent + Skill 调度（主 Agent、Sub-Agent、可加载 Skill、内置工具），见 [agent/README.md](agent/README.md) |
 
 ## 使用方式
 
