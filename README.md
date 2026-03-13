@@ -47,5 +47,5 @@ git push -u origin main
 
 ## 后续扩展
 
-- **AI 辅助**：在 `ai/` 中放 prompt、角色设定；从 `materials/` 取素材做检索或续写。
+- **AI 辅助**：由 `agent/` 提供多 Agent + Skill 调度（主 Agent 规划、Sub-Agent 执行、可加载 Skill）；可从 `materials/` 取素材做检索或续写，见 [agent/README.md](agent/README.md)。
 - **自动化**：可加脚本根据 frontmatter 生成文章索引、按 tag 筛选等。

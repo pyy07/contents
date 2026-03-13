@@ -20,6 +20,7 @@ from .experience import (
     query_successful_skills,
     query_failed_combinations,
 )
+from .config import get_llm_config, LLMConfig
 
 __all__ = [
     "Task",
@@ -41,4 +42,6 @@ __all__ = [
     "append_experience",
     "query_successful_skills",
     "query_failed_combinations",
+    "get_llm_config",
+    "LLMConfig",
 ]

@@ -2,6 +2,9 @@
 
 本目录实现**主 Agent（Orchestrator） + Sub-Agent + Skill** 架构：主 Agent 负责理解请求、制定计划、分配任务；Sub-Agent 按领域执行 Skill；任务与结果通过统一契约传递。对应 OpenSpec 变更：`openspec/changes/add-multi-agent-skill-orchestration/`。
 
+📐 **技术架构图**：[ARCHITECTURE.md](ARCHITECTURE.md)（组件总览、请求流程、Skill 加载、契约与数据流）  
+⚙️ **模型与 API 配置**：[CONFIG.md](CONFIG.md)（当前未使用大模型；API Key、Base URL、模型名等预留说明）
+
 ## 核心概念
 
 - **主 Agent（Orchestrator）**：接收用户或上层请求，生成执行计划（单步或多步），将任务下发给 Sub-Agent 或调用自身 Skill / 内置工具，并处理返回结果。
@@ -45,13 +48,15 @@ agent/
 │   └── info/
 │       └── skills/
 │           └── zhihu_hot.py   # 知乎热榜 Skill
-├── experience/     # 经验存储（如 store.json）
+├── experience/     # 经验存储（运行时生成，如 store.json）
 └── README.md
 ```
 
+**运行环境**：在仓库根目录（即 `contents/`，与 `agent` 平级）下执行 Python，以便 `agent` 作为包被正确导入。仅用标准库，无需额外依赖。
+
 ## 快速使用
 
-在项目根目录（`contents/`）下：
+**最简用法**（无上下文、无经验存储）：
 
 ```python
 from pathlib import Path
@@ -61,8 +66,6 @@ from agent.core import (
     register_builtin_tools,
     Orchestrator,
     SubAgent,
-    AgentContext,
-    ContextConfig,
 )
 
 root = Path(".")
@@ -70,6 +73,19 @@ agent_root = root / "agent"
 registry = Registry()
 register_builtin_tools(registry, root)
 load_skills_from_sub_agents(agent_root, registry)
+
+orchestrator = Orchestrator(
+    registry,
+    sub_agents={"info": SubAgent("info", registry)},
+)
+result = orchestrator.request("获取知乎热文")
+# result.status, result.result（含 items、update_time）或 result.error
+```
+
+**完整用法**（带上下文与经验沉淀）：
+
+```python
+from agent.core import AgentContext, ContextConfig
 
 context = AgentContext("main", ContextConfig())
 experience_path = agent_root / "experience" / "store.json"
@@ -79,10 +95,18 @@ orchestrator = Orchestrator(
     context=context,
     experience_path=experience_path,
 )
-
 result = orchestrator.request("获取知乎热文")
-# result.status, result.result / result.error
 ```
+
+## 如何新增 Skill
+
+1. 在 `agent/sub_agents/<domain>/skills/` 下新建 `.py` 文件（如 `my_skill.py`）。
+2. 模块内导出四个变量/函数：
+   - `name`：字符串，Skill 名称（如 `"my_skill"`）。
+   - `description`：字符串，供主 Agent 按描述匹配。
+   - `input_schema`：字典，参数说明（如 `{"limit": {"type": "integer"}}`）。
+   - `execute(params: dict)`：可调用对象，返回 `TaskResult` 或 `dict`（含 `status`、`result`/`error`）。
+3. 启动或刷新时调用 `load_skills_from_sub_agents(agent_root, registry)`，新 Skill 会自动注册到对应 domain，主 Agent 即可通过描述或名称发现并分配任务。
 
 ## 与 OpenSpec 的对应关系
 
