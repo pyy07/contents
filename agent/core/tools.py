@@ -241,3 +241,7 @@ def register_builtin_tools(
         )
         skills.append((desc, execute))
     registry.register_skills(MAIN_AGENT_ID, skills)
+    registry.set_agent_description(
+        MAIN_AGENT_ID,
+        "主 Agent 自身，负责执行内置工具：读写文件、列目录、运行代码等，在项目内直接执行。",
+    )

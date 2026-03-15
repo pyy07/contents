@@ -5,13 +5,16 @@
 """
 from __future__ import annotations
 
+import json
 import uuid
 from pathlib import Path
 from .types import Task, TaskResult, TaskStatus, ErrorInfo
 from .registry import Registry
 from .sub_agent import SubAgent
 from .context import AgentContext, ContextConfig
-from .experience import append_experience, query_successful_skills, query_failed_combinations
+from .experience import append_experience
+from .config import get_llm_config
+from . import llm as llm_module
 
 
 MAIN_AGENT_ID = "main"
@@ -35,60 +38,46 @@ class Orchestrator:
     def plan(self, user_request: str) -> dict | None:
         """
         根据用户请求生成单步执行计划（选一个 Skill + params）。
-        首版为规则匹配；可参考经验（优先历史成功 Skill、避免曾失败组合）。
+        仅由 LLM 驱动；未配置 LLM 或调用失败时返回 None。
         """
-        request_lower = (user_request or "").strip().lower()
-        if not request_lower:
+        request_stripped = (user_request or "").strip()
+        if not request_stripped:
             return None
-        failed_skills = set()
-        if self._experience_path and self._experience_path.exists():
-            for skill, _ in query_failed_combinations(self._experience_path):
-                failed_skills.add(skill)
-        # 先按描述匹配
-        candidates = self._registry.find_by_description(request_lower)
-        for agent_id, desc, _ in candidates:
-            if desc.name in failed_skills:
-                continue
-            params = self._default_params(desc.name)
-            return {"skill": desc.name, "params": params, "agent_id": agent_id}
-        # 再按名称精确匹配常见意图
-        if "知乎" in user_request or "热榜" in user_request or "热文" in user_request:
-            found = self._registry.find_skill("zhihu_hot")
-            if found:
-                agent_id, desc, _ = found
-                return {"skill": "zhihu_hot", "params": self._default_params("zhihu_hot"), "agent_id": agent_id}
-        return None
+        if not get_llm_config("main").is_configured():
+            return None
+        agents_and_skills = self._registry.list_agents_and_skills()
+        context_snapshot = None
+        if self._context:
+            # 可选：传入最近消息/结果摘要供 LLM 参考
+            context_snapshot = getattr(self._context, "_messages", [])[-10:]
+        plan_step = llm_module.call_llm_for_plan(
+            request_stripped,
+            agents_and_skills,
+            context_snapshot=context_snapshot,
+        )
+        return plan_step
 
-    def _default_params(self, skill_name: str) -> dict:
-        """返回某 Skill 的默认 params。"""
-        if skill_name == "zhihu_hot":
-            return {"limit": 10, "save": False}
-        return {}
-
-    def dispatch(self, plan_step: dict, task_id: str | None = None) -> TaskResult:
+    def dispatch(self, plan_step: dict, task_id: str | None = None, user_request: str = "") -> TaskResult:
         """
-        根据计划执行：若为目标 Sub-Agent 则构造任务并调用其 run；
-        若为主 Agent 自身 Skill 或工具则本地调用 execute。
+        根据计划执行：分配给 sub-agent 时只传 task_description，由 sub-agent 自选技能；
+        分配给 main 时传 skill + params 直接执行。
         """
         task_id = task_id or str(uuid.uuid4())
-        skill_name = plan_step.get("skill")
-        params = plan_step.get("params") or {}
         agent_id = plan_step.get("agent_id", MAIN_AGENT_ID)
-
-        found = self._registry.find_skill(skill_name)
-        if not found:
-            return TaskResult(
-                task_id=task_id,
-                status=TaskStatus.FAILURE,
-                error=ErrorInfo(code="SKILL_NOT_FOUND", message=f"未找到 Skill: {skill_name}"),
-            )
-        resolved_agent_id, _, execute = found
-        if resolved_agent_id != agent_id:
-            agent_id = resolved_agent_id
-
-        task = Task(task_id=task_id, skill=skill_name, params=params, context=None)
+        task_description = (plan_step.get("task_description") or "").strip() or user_request
 
         if agent_id == MAIN_AGENT_ID:
+            skill_name = plan_step.get("skill")
+            params = plan_step.get("params") or {}
+            found = self._registry.find_skill(skill_name)
+            if not found:
+                return TaskResult(
+                    task_id=task_id,
+                    status=TaskStatus.FAILURE,
+                    error=ErrorInfo(code="SKILL_NOT_FOUND", message=f"未找到 Skill: {skill_name}"),
+                )
+            _, _, execute = found
+            task = Task(task_id=task_id, skill=skill_name, params=params, context=None, task_description=None)
             try:
                 result = execute(params)
                 return TaskResult(
@@ -103,6 +92,7 @@ class Orchestrator:
                     status=TaskStatus.FAILURE,
                     error=ErrorInfo(code="SKILL_ERROR", message=str(e)),
                 )
+
         sub_agent = self._sub_agents.get(agent_id)
         if not sub_agent:
             return TaskResult(
@@ -110,10 +100,17 @@ class Orchestrator:
                 status=TaskStatus.FAILURE,
                 error=ErrorInfo(code="AGENT_NOT_FOUND", message=f"未找到 Sub-Agent: {agent_id}"),
             )
+        task = Task(
+            task_id=task_id,
+            skill="",
+            params={},
+            context=None,
+            task_description=task_description or user_request,
+        )
         return sub_agent.run(task)
 
     def request(self, user_request: str) -> TaskResult:
-        """接收用户或上层请求：规划 -> 下发 -> 写上下文与经验 -> 返回结果。"""
+        """接收用户或上层请求：规划 -> 下发 -> 处理返回并判定是否完成 -> 若未完成则下一步计划并再次下发。"""
         if self._context:
             self._context.add_message("user", user_request)
         plan_step = self.plan(user_request)
@@ -127,7 +124,7 @@ class Orchestrator:
             )
         if self._context:
             self._context.set_plan(plan_step)
-        res = self.dispatch(plan_step)
+        res = self.dispatch(plan_step, user_request=user_request)
         if self._context:
             self._context.add_result(
                 res.task_id, res.status.value, result=res.result, error=res.error
@@ -137,7 +134,34 @@ class Orchestrator:
                 self._experience_path,
                 skill=plan_step.get("skill", ""),
                 params_type="default",
-                request_type="zhihu" if "知乎" in user_request or "热" in user_request else "general",
+                request_type="general",
                 status=res.status.value,
             )
-        return res
+        # 主控处理返回并判定是否完成；若未完成则进行下一步计划并再次下发（最多一步）
+        last_error = None
+        if res.error:
+            last_error = {"code": getattr(res.error, "code", ""), "message": getattr(res.error, "message", "")}
+        done = llm_module.call_llm_evaluate_completion(
+            user_request,
+            last_result=res.result if res.result else None,
+            last_error=last_error,
+            context_snapshot=getattr(self._context, "_messages", [])[-10:] if self._context else None,
+        )
+        if done:
+            return res
+        if self._context:
+            self._context.add_message(
+                "system",
+                f"上一步执行结果：{json.dumps(res.result or {}, ensure_ascii=False)}；错误：{last_error or '无'}",
+            )
+        next_plan = self.plan(user_request)
+        if not next_plan:
+            return res
+        if self._context:
+            self._context.set_plan(next_plan)
+        next_res = self.dispatch(next_plan, user_request=user_request)
+        if self._context:
+            self._context.add_result(
+                next_res.task_id, next_res.status.value, result=next_res.result, error=next_res.error
+            )
+        return next_res

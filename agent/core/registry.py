@@ -13,19 +13,41 @@ SkillExecute = Callable[[dict], TaskResult]
 
 
 class Registry:
-    """Agent 与 Skill 注册表，按所属 Agent 区分，支持按 skill name 或描述匹配查询。"""
+    """Agent 与 Skill 注册表，按所属 Agent 区分；各 Agent 可注册职责描述，供主控分配工作。"""
 
     def __init__(self) -> None:
         # agent_id -> [(SkillDescriptor, execute), ...]
         self._agents: dict[str, list[tuple[SkillDescriptor, SkillExecute]]] = {}
+        # agent_id -> 该 Agent 负责工作的描述（主控根据此分配任务）
+        self._agent_descriptions: dict[str, str] = {}
 
     def register_agent(
         self,
         agent_id: str,
         skills: list[tuple[SkillDescriptor, SkillExecute]],
+        description: str | None = None,
     ) -> None:
-        """注册 Agent 及其 Skill 列表（描述 + 执行入口）。同一 agent_id 多次调用会追加或覆盖，此处采用覆盖。"""
+        """注册 Agent 及其 Skill 列表；可选 description 为该 Agent 负责工作的描述，供主控分配时参考。"""
         self._agents[agent_id] = list(skills)
+        if description is not None:
+            self._agent_descriptions[agent_id] = description
+
+    def set_agent_description(self, agent_id: str, description: str) -> None:
+        """设置或更新某 Agent 的职责描述。"""
+        self._agent_descriptions[agent_id] = description
+
+    def get_agent_description(self, agent_id: str) -> str:
+        """返回某 Agent 的职责描述，未设置则返回空字符串。"""
+        return self._agent_descriptions.get(agent_id, "")
+
+    def list_agents_and_skills(self) -> list[tuple[str, str, list[SkillDescriptor]]]:
+        """返回 (agent_id, 职责描述, 该 Agent 下 SkillDescriptor 列表)，供主控根据职责分配工作。"""
+        result: list[tuple[str, str, list[SkillDescriptor]]] = []
+        for agent_id, skill_list in self._agents.items():
+            desc_text = self._agent_descriptions.get(agent_id, "")
+            descriptors = [desc for desc, _ in skill_list]
+            result.append((agent_id, desc_text, descriptors))
+        return result
 
     def register_skills(self, agent_id: str, skills: list[tuple[SkillDescriptor, SkillExecute]]) -> None:
         """向已存在的 Agent 追加 Skill；若 agent_id 不存在则等同于 register_agent。"""

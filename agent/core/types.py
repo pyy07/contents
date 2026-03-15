@@ -30,6 +30,8 @@ class Task:
     skill: str
     params: dict[str, Any]
     context: dict[str, Any] | None = None
+    # 分配给 sub-agent 时由主控填写，sub-agent 据此自行决定使用何种技能
+    task_description: str | None = None
 
 
 @dataclass

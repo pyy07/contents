@@ -1,10 +1,10 @@
 # Agent 配置说明
 
-## 当前状态：未使用大模型
+## 主 Agent 规划仅由 LLM 驱动
 
-主 Agent 的**规划与匹配**目前为**规则实现**（如关键词「知乎」「热榜」→ zhihu_hot），**未调用任何 LLM**，因此**无需配置 API Key、Base URL 或模型名**即可运行现有能力（内置工具、zhihu_hot Skill 等）。
+主 Agent 的**规划**仅由 **LLM** 驱动，无规则匹配或回退。必须配置 `LLM_*` 或 `OPENAI_*` 环境变量（API Key、Base URL、模型名）后，主 Agent 才能根据用户请求生成执行计划；未配置或 LLM 调用失败时，`plan()` 返回 None，`request()` 返回 NO_PLAN 错误。
 
-## 按 Agent 配置不同 LLM（预留）
+## 按 Agent 配置不同 LLM
 
 主 Agent 与每个 Sub-Agent **均可单独配置一套 LLM**（API Key、Base URL、模型名），便于：
 

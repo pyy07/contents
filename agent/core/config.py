@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Agent 运行配置：按 Agent 区分的 LLM 配置（API Key、Base URL、模型名）。
-主 Agent 与各 Sub-Agent 可配置不同 LLM；当前未实际调用，为接入 LLM 时预留。
+主 Agent 规划使用 get_llm_config("main")；各 Sub-Agent 可单独配置。
 """
 from __future__ import annotations
 

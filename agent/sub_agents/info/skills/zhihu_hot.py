@@ -19,7 +19,9 @@ input_schema = {
     "save": {"type": "boolean", "description": "是否保存为 materials/links/zhihu-hot-YYYYMMDD.md", "default": False},
 }
 
+# 知乎无官方热榜开放 API，此处使用第三方聚合接口（返回 JSON：code、data、updateTime 等），便于直接解析
 ZHIHU_HOT_API = "https://www.tianchenw.com/hot/zhihu/"
+# 部分服务会校验 User-Agent，带浏览器 UA 可减少被拒或限流
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 

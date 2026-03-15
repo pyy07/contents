@@ -54,8 +54,7 @@ sequenceDiagram
 
     U->>O: request("获取知乎热文")
     O->>C: add_message(user, ...)
-    O->>E: query_failed_combinations()
-    O->>O: plan() → 匹配 zhihu_hot
+    O->>O: plan() → LLM 生成 plan_step（仅 LLM，无规则回退）
     O->>C: set_plan(plan_step)
     O->>R: find_skill("zhihu_hot")
     R-->>O: (agent_id=info, descriptor, execute)
@@ -119,7 +118,7 @@ flowchart LR
 
 说明：
 
-- **Orchestrator**：根据请求做规划（规则匹配或后续扩展 LLM），通过 Registry 解析目标 Agent + Skill，再下发 Task 或本地执行。
+- **Orchestrator**：根据请求做规划（仅 LLM 驱动，无规则回退），通过 Registry 解析目标 Agent + Skill，再下发 Task 或本地执行。
 - **Registry**：维护「Agent → Skill 列表」；主 Agent 的 Skill（含内置工具）与各 Sub-Agent 的 Skill 分开存储，按 name/description 查询。
 - **Sub-Agent**：按 `task.skill` 从 Registry 取执行函数并调用，返回统一 TaskResult。
 - **Context**：可选；存历史消息与结果，超阈值时自动 compact。

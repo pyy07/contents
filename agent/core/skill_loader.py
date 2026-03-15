@@ -83,9 +83,30 @@ def _ensure_task_result(value: object) -> TaskResult:
     )
 
 
+def _get_sub_agent_responsibility(domain_dir: Path, sub_agents_dir: Path) -> str | None:
+    """从 sub_agent 目录的 __init__.py 中读取 responsibility 变量，作为该 Agent 的职责描述。"""
+    init_py = domain_dir / "__init__.py"
+    if not init_py.is_file():
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location(
+            f"sub_agent_{domain_dir.name}",
+            init_py,
+            submodule_search_locations=[str(sub_agents_dir)],
+        )
+        if spec is None or spec.loader is None:
+            return None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return getattr(mod, "responsibility", None) if isinstance(getattr(mod, "responsibility", None), str) else None
+    except Exception:
+        return None
+
+
 def load_skills_from_sub_agents(agent_root: Path, registry: Registry) -> int:
     """
     从 agent_root/sub_agents/<domain>/skills/ 扫描 .py 文件，加载符合契约的 Skill 并注册到 registry。
+    各 sub_agent 可在其 __init__.py 中定义 responsibility（字符串），作为负责工作的描述一并注册供主控分配。
     同一 domain 下本次扫描到的 skills 会先清空再注册（便于刷新时覆盖）。返回成功注册的 Skill 数量。
     """
     sub_agents_dir = agent_root / "sub_agents"
@@ -96,7 +117,7 @@ def load_skills_from_sub_agents(agent_root: Path, registry: Registry) -> int:
     if str(agent_parent) not in sys.path:
         sys.path.insert(0, str(agent_parent))
 
-    domains_to_load: dict[str, list[tuple[SkillDescriptor, SkillExecute]]] = {}
+    domains_to_load: dict[str, tuple[list[tuple[SkillDescriptor, SkillExecute]], str | None]] = {}
     for domain_dir in sub_agents_dir.iterdir():
         if not domain_dir.is_dir():
             continue
@@ -104,7 +125,9 @@ def load_skills_from_sub_agents(agent_root: Path, registry: Registry) -> int:
         skills_dir = domain_dir / "skills"
         if not skills_dir.is_dir():
             continue
-        domains_to_load.setdefault(domain_id, [])
+        responsibility = _get_sub_agent_responsibility(domain_dir, sub_agents_dir)
+        domains_to_load.setdefault(domain_id, ([], responsibility))
+        skill_list = domains_to_load[domain_id][0]
         for py_file in skills_dir.glob("*.py"):
             if py_file.name.startswith("_"):
                 continue
@@ -120,12 +143,12 @@ def load_skills_from_sub_agents(agent_root: Path, registry: Registry) -> int:
                 return _run
 
             wrapped = _wrap(execute_fn)
-            domains_to_load[domain_id].append((desc, wrapped))
+            skill_list.append((desc, wrapped))
 
     count = 0
-    for domain_id, skills in domains_to_load.items():
+    for domain_id, (skills, description) in domains_to_load.items():
         if not skills:
             continue
-        registry.register_agent(domain_id, skills)
+        registry.register_agent(domain_id, skills, description=description or None)
         count += len(skills)
     return count
