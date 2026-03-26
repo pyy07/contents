@@ -1,0 +1,41 @@
+﻿{
+  "jobs": 2,
+  "tasks": [
+    {
+      "id": "llm-01",
+      "promptFiles": ["prompts/01-infographic-architecture-evolution.md"],
+      "image": "01-infographic-architecture-evolution.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    },
+    {
+      "id": "llm-02",
+      "promptFiles": ["prompts/02-infographic-framework-state-compare.md"],
+      "image": "02-infographic-framework-state-compare.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    },
+    {
+      "id": "llm-03",
+      "promptFiles": ["prompts/03-infographic-runtime-risk-profile.md"],
+      "image": "03-infographic-runtime-risk-profile.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    },
+    {
+      "id": "llm-04",
+      "promptFiles": ["prompts/04-infographic-selection-matrix.md"],
+      "image": "04-infographic-selection-matrix.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    }
+  ]
+}
