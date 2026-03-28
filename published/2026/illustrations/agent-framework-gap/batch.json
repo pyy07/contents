@@ -1,0 +1,48 @@
+{
+  "tasks": [
+    {
+      "id": "illustration-01",
+      "promptFiles": [
+        "/Users/lukepan/data/github/pyy07/contents/published/2026/illustrations/agent-framework-gap/prompts/01-infographic-six-anxieties.md"
+      ],
+      "image": "/Users/lukepan/data/github/pyy07/contents/published/2026/illustrations/agent-framework-gap/01-infographic-six-anxieties.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    },
+    {
+      "id": "illustration-02",
+      "promptFiles": [
+        "/Users/lukepan/data/github/pyy07/contents/published/2026/illustrations/agent-framework-gap/prompts/02-flowchart-chain-vs-graph.md"
+      ],
+      "image": "/Users/lukepan/data/github/pyy07/contents/published/2026/illustrations/agent-framework-gap/02-flowchart-chain-vs-graph.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    },
+    {
+      "id": "illustration-03",
+      "promptFiles": [
+        "/Users/lukepan/data/github/pyy07/contents/published/2026/illustrations/agent-framework-gap/prompts/03-comparison-multiagent-models.md"
+      ],
+      "image": "/Users/lukepan/data/github/pyy07/contents/published/2026/illustrations/agent-framework-gap/03-comparison-multiagent-models.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    },
+    {
+      "id": "illustration-04",
+      "promptFiles": [
+        "/Users/lukepan/data/github/pyy07/contents/published/2026/illustrations/agent-framework-gap/prompts/04-framework-six-dimensions.md"
+      ],
+      "image": "/Users/lukepan/data/github/pyy07/contents/published/2026/illustrations/agent-framework-gap/04-framework-six-dimensions.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    }
+  ]
+}
