@@ -1,0 +1,41 @@
+{
+  "jobs": 2,
+  "tasks": [
+    {
+      "id": "agent-01",
+      "promptFiles": ["prompts/01-infographic-evolution-drivers.md"],
+      "image": "01-infographic-evolution-drivers.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    },
+    {
+      "id": "agent-02",
+      "promptFiles": ["prompts/02-comparison-framework-matrix.md"],
+      "image": "02-comparison-framework-matrix.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    },
+    {
+      "id": "agent-03",
+      "promptFiles": ["prompts/03-flowchart-selection-decision-tree.md"],
+      "image": "03-flowchart-selection-decision-tree.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    },
+    {
+      "id": "agent-04",
+      "promptFiles": ["prompts/04-framework-hybrid-architecture.md"],
+      "image": "04-framework-hybrid-architecture.png",
+      "provider": "dashscope",
+      "model": "z-image-turbo",
+      "ar": "16:9",
+      "quality": "2k"
+    }
+  ]
+}
